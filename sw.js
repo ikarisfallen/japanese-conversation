@@ -1,6 +1,6 @@
 // Service worker so the app (and its 17 MB dictionary) work offline.
 // Bump VERSION if you change the dictionary or the asset list.
-const VERSION = "v2";
+const VERSION = "v3";
 const CACHE = `hanasou-${VERSION}`;
 
 const DICT = [
@@ -14,6 +14,7 @@ const ASSETS = [
   "styles.css",
   "app.js",
   "match.js",
+  "furigana.js",
   "drills.js",
   "manifest.webmanifest",
   "icons/icon-192.png",
@@ -46,7 +47,8 @@ self.addEventListener("fetch", (event) => {
   }
 
   event.respondWith(
-    fetch(req)
+    // no-cache: revalidate with the server so the browser's HTTP cache can't serve stale app files.
+    fetch(req, { cache: "no-cache" })
       .then((res) => {
         if (res.ok) {
           const copy = res.clone();

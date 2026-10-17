@@ -26,6 +26,8 @@ Edit `drills.js`. Accepted answers use a small pattern syntax:
 
 Example: `"[うん|]元気[だよ|]"` accepts 元気, 元気だよ, うん元気 and うん元気だよ.
 
+Furigana comes from the `kana` and `qKana` fields, so separate words with spaces there (`きょう さむくない？`). The spaces tell the app where one word's reading ends when kanji from two words sit next to each other.
+
 Write numbers in kanji (七時, 二年). If a kanji has two readings the tokenizer could pick (空いた = あいた/すいた), also list the kana spelling.
 
 `vendor/kuromoji/kuromoji.js` has one local patch: the dictionary loader skips gunzip if the host already decompressed the file.

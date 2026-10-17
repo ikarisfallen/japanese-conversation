@@ -13,6 +13,7 @@
   <script src="vendor/kuromoji/kuromoji.js" defer></script>
   <script src="drills.js" defer></script>
   <script src="match.js" defer></script>
+  <script src="furigana.js" defer></script>
   <script src="app.js" defer></script>
 </head>
 <body>
@@ -84,7 +85,13 @@
           <p id="card-q" class="jp q"></p>
           <button id="card-q-hidden" class="reveal" hidden>Tap to show the question</button>
         </div>
+        <p id="q-meaning" class="reveal-box" hidden></p>
         <p class="cue"><span class="muted">Answer:</span> <span id="card-cue"></span></p>
+        <p id="a-hint" class="reveal-box jp hint-text" hidden></p>
+        <div class="toggles">
+          <button id="btn-meaning" class="toggle" aria-pressed="false">Meaning</button>
+          <button id="btn-hint" class="toggle" aria-pressed="false">Answer</button>
+        </div>
       </article>
 
       <div id="listen-area" class="listen">

@@ -2,6 +2,8 @@
 //
 // Each drill:
 //   q       question spoken to you
+//   qKana   reading of the question (for furigana)
+//   qEn     translation of the question
 //   cue     what you should answer (English)
 //   model   the model answer (shown + spoken after you answer)
 //   kana    reading of the model answer
@@ -26,6 +28,8 @@ window.DRILLS = [
   {
     id: "greet-01", cat: "greet",
     q: "最近どう？",
+    qKana: "さいきん どう？",
+    qEn: "How've you been lately?",
     cue: "Say you've been a bit busy lately.",
     model: "最近ちょっと忙しいかな",
     kana: "さいきん ちょっと いそがしい かな",
@@ -36,6 +40,8 @@ window.DRILLS = [
   {
     id: "greet-02", cat: "greet",
     q: "元気？",
+    qKana: "げんき？",
+    qEn: "You doing okay?",
     cue: "Say you're good, then ask them back.",
     model: "うん、元気だよ。そっちは？",
     kana: "うん、げんき だよ。そっち は？",
@@ -46,6 +52,8 @@ window.DRILLS = [
   {
     id: "greet-03", cat: "greet",
     q: "久しぶり！",
+    qKana: "ひさしぶり！",
+    qEn: "Long time no see!",
     cue: "Say 'Long time no see! How've you been?'",
     model: "久しぶり！元気してた？",
     kana: "ひさしぶり！ げんき してた？",
@@ -55,6 +63,8 @@ window.DRILLS = [
   {
     id: "greet-04", cat: "greet",
     q: "今日寒くない？",
+    qKana: "きょう さむくない？",
+    qEn: "Isn't it cold today?",
     cue: "Agree: yeah, it's really cold.",
     model: "うん、超寒いね",
     kana: "うん、ちょう さむい ね",
@@ -65,6 +75,8 @@ window.DRILLS = [
   {
     id: "greet-05", cat: "greet",
     q: "なんか眠そうだね。",
+    qKana: "なんか ねむそう だね。",
+    qEn: "You look kind of sleepy.",
     cue: "Say yeah — you went to bed at two.",
     model: "うん、二時に寝たから",
     kana: "うん、にじ に ねた から",
@@ -75,6 +87,8 @@ window.DRILLS = [
   {
     id: "greet-06", cat: "greet",
     q: "どうしたの？元気ないじゃん。",
+    qKana: "どうしたの？ げんき ない じゃん。",
+    qEn: "What's wrong? You seem down.",
     cue: "Say you're just a little tired.",
     model: "ちょっと疲れてるだけ",
     kana: "ちょっと つかれてる だけ",
@@ -87,6 +101,8 @@ window.DRILLS = [
   {
     id: "food-01", cat: "food",
     q: "お腹空いてる？",
+    qKana: "おなか すいてる？",
+    qEn: "Are you hungry?",
     cue: "Say: yeah, I'm starving.",
     model: "うん、もうお腹ペコペコ",
     kana: "うん、もう おなか ぺこぺこ",
@@ -101,6 +117,8 @@ window.DRILLS = [
   {
     id: "food-02", cat: "food",
     q: "何食べたい？",
+    qKana: "なに たべたい？",
+    qEn: "What do you want to eat?",
     cue: "Say you want ramen.",
     model: "ラーメン食べたいな",
     kana: "らーめん たべたい な",
@@ -110,6 +128,8 @@ window.DRILLS = [
   {
     id: "food-03", cat: "food",
     q: "昼ご飯もう食べた？",
+    qKana: "ひるごはん もう たべた？",
+    qEn: "Have you had lunch yet?",
     cue: "Say: not yet.",
     model: "ううん、まだ",
     kana: "ううん、まだ",
@@ -120,6 +140,8 @@ window.DRILLS = [
   {
     id: "food-04", cat: "food",
     q: "これ美味しくない？",
+    qKana: "これ おいしくない？",
+    qEn: "Isn't this delicious?",
     cue: "Agree enthusiastically: super tasty!",
     model: "うん、めっちゃ美味しい！",
     kana: "うん、めっちゃ おいしい！",
@@ -132,6 +154,8 @@ window.DRILLS = [
   {
     id: "food-05", cat: "food",
     q: "何飲む？",
+    qKana: "なに のむ？",
+    qEn: "What are you drinking?",
     cue: "Say you'll start with a beer.",
     model: "とりあえずビールで",
     kana: "とりあえず びーる で",
@@ -142,6 +166,8 @@ window.DRILLS = [
   {
     id: "food-06", cat: "food",
     q: "辛いの平気？",
+    qKana: "からいの へいき？",
+    qEn: "Are you okay with spicy food?",
     cue: "Say you're not great with spicy food.",
     model: "辛いのはちょっと苦手なんだよね",
     kana: "からい の は ちょっと にがて なんだ よね",
@@ -154,6 +180,8 @@ window.DRILLS = [
   {
     id: "plans-01", cat: "plans",
     q: "週末何してた？",
+    qKana: "しゅうまつ なに してた？",
+    qEn: "What did you do over the weekend?",
     cue: "Say you were just lazing around at home.",
     model: "家でゴロゴロしてた",
     kana: "いえ で ごろごろ してた",
@@ -164,6 +192,8 @@ window.DRILLS = [
   {
     id: "plans-02", cat: "plans",
     q: "明日暇？",
+    qKana: "あした ひま？",
+    qEn: "Are you free tomorrow?",
     cue: "Say: yeah, I'm free. Why?",
     model: "うん、暇だよ。なんで？",
     kana: "うん、ひま だよ。なんで？",
@@ -173,6 +203,8 @@ window.DRILLS = [
   {
     id: "plans-03", cat: "plans",
     q: "今週末何するの？",
+    qKana: "こんしゅうまつ なに するの？",
+    qEn: "What are you doing this weekend?",
     cue: "Say you haven't decided yet.",
     model: "まだ決めてないんだよね",
     kana: "まだ きめてない んだ よね",
@@ -182,6 +214,8 @@ window.DRILLS = [
   {
     id: "plans-04", cat: "plans",
     q: "一緒に映画見に行かない？",
+    qKana: "いっしょに えいが みに いかない？",
+    qEn: "Want to go see a movie together?",
     cue: "Say: sounds good, let's go!",
     model: "いいね、行こう！",
     kana: "いいね、いこう！",
@@ -191,6 +225,8 @@ window.DRILLS = [
   {
     id: "plans-05", cat: "plans",
     q: "夏休みどっか行った？",
+    qKana: "なつやすみ どっか いった？",
+    qEn: "Did you go anywhere over summer vacation?",
     cue: "Say you went to Okinawa.",
     model: "沖縄行ってきた",
     kana: "おきなわ いってきた",
@@ -201,6 +237,8 @@ window.DRILLS = [
   {
     id: "plans-06", cat: "plans",
     q: "何時にする？",
+    qKana: "なんじに する？",
+    qEn: "What time should we meet?",
     cue: "Suggest seven o'clock in front of the station.",
     model: "七時に駅前でどう？",
     kana: "しちじ に えきまえ で どう？",
@@ -210,6 +248,8 @@ window.DRILLS = [
   {
     id: "plans-07", cat: "plans",
     q: "今何してる？",
+    qKana: "いま なに してる？",
+    qEn: "What are you doing right now?",
     cue: "Say you're on your way home right now.",
     model: "今帰ってるとこ",
     kana: "いま かえってる とこ",
@@ -220,6 +260,8 @@ window.DRILLS = [
   {
     id: "plans-08", cat: "plans",
     q: "このあと飲みに行かない？",
+    qKana: "このあと のみに いかない？",
+    qEn: "Want to go for drinks after this?",
     cue: "Decline: sorry, today's not good.",
     model: "ごめん、今日はちょっと無理",
     kana: "ごめん、きょう は ちょっと むり",
@@ -229,6 +271,8 @@ window.DRILLS = [
   {
     id: "plans-09", cat: "plans",
     q: "写真撮ろうよ！",
+    qKana: "しゃしん とろう よ！",
+    qEn: "Let's take a picture!",
     cue: "Agree: yeah, let's take one!",
     model: "いいね、撮ろう撮ろう",
     kana: "いいね、とろう とろう",
@@ -239,6 +283,8 @@ window.DRILLS = [
   {
     id: "plans-10", cat: "plans",
     q: "駅までどうやって行く？",
+    qKana: "えき まで どうやって いく？",
+    qEn: "How are you getting to the station?",
     cue: "Say you'll walk.",
     model: "歩いて行く",
     kana: "あるいて いく",
@@ -250,6 +296,8 @@ window.DRILLS = [
   {
     id: "likes-01", cat: "likes",
     q: "趣味何？",
+    qKana: "しゅみ なに？",
+    qEn: "What are your hobbies?",
     cue: "Say you like playing games.",
     model: "ゲームするのが好き",
     kana: "げーむ する の が すき",
@@ -259,6 +307,8 @@ window.DRILLS = [
   {
     id: "likes-02", cat: "likes",
     q: "犬と猫、どっち派？",
+    qKana: "いぬ と ねこ、どっち は？",
+    qEn: "Dogs or cats — which are you?",
     cue: "Say you're a cat person.",
     model: "猫派かな",
     kana: "ねこ は かな",
@@ -269,6 +319,8 @@ window.DRILLS = [
   {
     id: "likes-03", cat: "likes",
     q: "どんな音楽聴くの？",
+    qKana: "どんな おんがく きくの？",
+    qEn: "What kind of music do you listen to?",
     cue: "Say you mostly listen to anime songs.",
     model: "アニソンが多いかな",
     kana: "あにそん が おおい かな",
@@ -278,6 +330,8 @@ window.DRILLS = [
   {
     id: "likes-04", cat: "likes",
     q: "料理するの？",
+    qKana: "りょうり するの？",
+    qEn: "Do you cook?",
     cue: "Say: sometimes, but you're not very good at it.",
     model: "たまにするけど、あんまり上手くない",
     kana: "たまに する けど、あんまり うまくない",
@@ -287,6 +341,8 @@ window.DRILLS = [
   {
     id: "likes-05", cat: "likes",
     q: "東京って住みやすい？",
+    qKana: "とうきょう って すみやすい？",
+    qEn: "Is Tokyo easy to live in?",
     cue: "Say it's convenient but way too crowded.",
     model: "便利だけど人多すぎ",
     kana: "べんり だけど ひと おおすぎ",
@@ -297,6 +353,8 @@ window.DRILLS = [
   {
     id: "likes-06", cat: "likes",
     q: "昨日のドラマ見た？",
+    qKana: "きのう の どらま みた？",
+    qEn: "Did you watch the drama last night?",
     cue: "Say: yes! It was so good!",
     model: "見た見た！めっちゃ良かった",
     kana: "みた みた！ めっちゃ よかった",
@@ -308,6 +366,8 @@ window.DRILLS = [
   {
     id: "react-01", cat: "react",
     q: "テストどうだった？",
+    qKana: "てすと どうだった？",
+    qEn: "How was the test?",
     cue: "Say it was a piece of cake.",
     model: "余裕だった",
     kana: "よゆう だった",
@@ -317,6 +377,8 @@ window.DRILLS = [
   {
     id: "react-02", cat: "react",
     q: "ねえ聞いた？田中さん結婚するんだって。",
+    qKana: "ねえ きいた？ たなかさん けっこん するんだって。",
+    qEn: "Hey, did you hear? Tanaka's getting married.",
     cue: "React: seriously?! No way!",
     model: "まじで？うそでしょ！",
     kana: "まじで？ うそ でしょ！",
@@ -327,6 +389,8 @@ window.DRILLS = [
   {
     id: "react-03", cat: "react",
     q: "ごめん、ちょっと遅れる！",
+    qKana: "ごめん、ちょっと おくれる！",
+    qEn: "Sorry, I'm going to be a little late!",
     cue: "Say: no worries, take your time.",
     model: "大丈夫、ゆっくりでいいよ",
     kana: "だいじょうぶ、ゆっくり で いい よ",
@@ -336,6 +400,8 @@ window.DRILLS = [
   {
     id: "react-04", cat: "react",
     q: "これ、あげる。",
+    qKana: "これ、あげる。",
+    qEn: "Here, this is for you.",
     cue: "Say: really? Thank you!",
     model: "え、いいの？ありがとう！",
     kana: "え、いい の？ ありがとう！",
@@ -345,6 +411,8 @@ window.DRILLS = [
   {
     id: "react-05", cat: "react",
     q: "手伝おうか？",
+    qKana: "てつだおうか？",
+    qEn: "Want me to help?",
     cue: "Say: it's fine, I can do it myself.",
     model: "大丈夫、自分でできる",
     kana: "だいじょうぶ、じぶん で できる",
@@ -354,6 +422,8 @@ window.DRILLS = [
   {
     id: "react-06", cat: "react",
     q: "日本語上手だね！",
+    qKana: "にほんご じょうず だね！",
+    qEn: "Your Japanese is really good!",
     cue: "Be modest: no no, still a long way to go.",
     model: "いやいや、まだまだだよ",
     kana: "いやいや、まだまだ だよ",
@@ -363,6 +433,8 @@ window.DRILLS = [
   {
     id: "react-07", cat: "react",
     q: "それ取ってくれる？",
+    qKana: "それ とって くれる？",
+    qEn: "Can you pass me that?",
     cue: "Say: sure, here you go.",
     model: "いいよ、はい",
     kana: "いい よ、はい",
@@ -373,6 +445,8 @@ window.DRILLS = [
   {
     id: "react-08", cat: "react",
     q: "先に帰っていい？",
+    qKana: "さきに かえって いい？",
+    qEn: "Is it okay if I head home first?",
     cue: "Say: sure, see you tomorrow.",
     model: "いいよ、また明日ね",
     kana: "いい よ、また あした ね",
@@ -384,6 +458,8 @@ window.DRILLS = [
   {
     id: "life-01", cat: "life",
     q: "仕事終わった？",
+    qKana: "しごと おわった？",
+    qEn: "Are you done with work?",
     cue: "Say: not yet, it'll take a bit longer.",
     model: "まだ。もうちょっとかかる",
     kana: "まだ。 もう ちょっと かかる",
@@ -393,6 +469,8 @@ window.DRILLS = [
   {
     id: "life-02", cat: "life",
     q: "何の仕事してるの？",
+    qKana: "なんの しごと してるの？",
+    qEn: "What do you do for work?",
     cue: "Say you work as an engineer.",
     model: "エンジニアやってる",
     kana: "えんじにあ やってる",
@@ -403,6 +481,8 @@ window.DRILLS = [
   {
     id: "life-03", cat: "life",
     q: "日本に来てどのくらい？",
+    qKana: "にほん に きて どのくらい？",
+    qEn: "How long have you been in Japan?",
     cue: "Say about two years.",
     model: "二年ぐらいかな",
     kana: "にねん ぐらい かな",
@@ -412,6 +492,8 @@ window.DRILLS = [
   {
     id: "life-04", cat: "life",
     q: "朝ごはん食べた？",
+    qKana: "あさごはん たべた？",
+    qEn: "Did you have breakfast?",
     cue: "Say you skipped it because you overslept.",
     model: "寝坊したから食べてない",
     kana: "ねぼう した から たべてない",
@@ -421,6 +503,8 @@ window.DRILLS = [
   {
     id: "life-05", cat: "life",
     q: "週何回ジム行ってるの？",
+    qKana: "しゅう なんかい じむ いってるの？",
+    qEn: "How many times a week do you go to the gym?",
     cue: "Say about three times a week.",
     model: "週三回ぐらい",
     kana: "しゅう さんかい ぐらい",
@@ -430,6 +514,8 @@ window.DRILLS = [
   {
     id: "life-06", cat: "life",
     q: "引っ越したんだって？",
+    qKana: "ひっこした んだって？",
+    qEn: "I heard you moved?",
     cue: "Say: yeah, last month.",
     model: "うん、先月引っ越した",
     kana: "うん、せんげつ ひっこした",

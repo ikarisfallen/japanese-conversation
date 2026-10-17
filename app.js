@@ -138,12 +138,49 @@
 
   function current() { return session.queue[session.index]; }
 
+  // Replace an element's content with furigana-annotated text. Returns false if it fell back to plain text.
+  function setRuby(el, text, kana) {
+    const { node, ok } = window.Furigana.render(text, kana);
+    el.replaceChildren(node);
+    return ok;
+  }
+
+  // "Meaning" toggle: English translation of the question + furigana on it.
+  function setMeaning(on) {
+    const d = current();
+    $("btn-meaning").setAttribute("aria-pressed", on);
+    $("q-meaning").hidden = !on;
+    $("q-meaning").textContent = d.qEn || "";
+    if (on) {
+      setRuby($("card-q"), d.q, d.qKana);
+      $("card-q").hidden = false;
+      $("card-q-hidden").hidden = true;
+    } else {
+      $("card-q").textContent = d.q;
+    }
+    $("card-q").classList.toggle("with-ruby", on);
+  }
+
+  // "Answer" toggle: the model answer with furigana. Peeking stops the card from moving up a box.
+  function setHint(on) {
+    const d = current();
+    $("btn-hint").setAttribute("aria-pressed", on);
+    $("a-hint").hidden = !on;
+    if (on) {
+      setRuby($("a-hint"), d.model, d.kana);
+      session.peeked = true;
+    }
+  }
+
   function showCard() {
     const d = current();
     session.attempt = null;
+    session.peeked = false;
     $("card-cat").textContent = window.CATEGORIES[d.cat];
-    $("card-q").textContent = d.q;
     $("card-cue").textContent = d.cue;
+    setMeaning(false);
+    setHint(false);
+    $("btn-hint").hidden = false;
     const hideQ = settings.showQ === "after";
     $("card-q").hidden = hideQ;
     $("card-q-hidden").hidden = !hideQ;
@@ -197,7 +234,7 @@
     const d = current();
     const m = window.Matcher.bestMatch(heardList, d.answers);
     const v = window.Matcher.verdict(m.score);
-    if (!session.attempt) session.attempt = { verdict: v, overridden: false };
+    if (!session.attempt) session.attempt = { verdict: v, overridden: false, peeked: session.peeked };
     renderResult(d, m, v);
   }
 
@@ -214,12 +251,18 @@
     $("result").hidden = false;
     $("card-q").hidden = false;
     $("card-q-hidden").hidden = true;
+    // The model answer is shown below, so the Answer toggle isn't needed now.
+    $("btn-hint").hidden = true;
+    $("a-hint").hidden = true;
 
     const verdictEl = $("verdict");
     verdictEl.className = `verdict ${v}`;
     verdictEl.textContent = `${VERDICT_TEXT[v]} (${Math.round(m.score * 100)}%)`;
     if (POLITE.test(m.heard) && !POLITE.test(d.model)) {
       verdictEl.textContent += " · That's polite form — use タメ口 (casual) here";
+    }
+    if (session.attempt.peeked && v === "correct") {
+      verdictEl.textContent += " · used the answer, so it'll come back sooner";
     }
 
     $("heard-text").textContent = m.heard;
@@ -236,7 +279,8 @@
       }
     }
 
-    $("model-text").textContent = d.model;
+    // With furigana on the model answer, the separate kana line is only needed as a fallback.
+    $("model-kana").hidden = setRuby($("model-text"), d.model, d.kana);
     $("model-kana").textContent = d.kana;
     $("model-en").textContent = d.en;
     $("model-note").textContent = d.note || "";
@@ -247,7 +291,8 @@
 
   function next() {
     const d = current();
-    const result = session.attempt ? session.attempt.verdict : "wrong";
+    let result = session.attempt ? session.attempt.verdict : "wrong";
+    if (result === "correct" && session.attempt.peeked) result = "close";
     if (!session.results.has(d.id)) {
       session.results.set(d.id, result);
       schedule(d.id, result);
@@ -401,7 +446,11 @@
       if (text) grade([text]);
     };
     $("btn-say-a").onclick = () => speak(current().model);
+    $("btn-meaning").onclick = () => setMeaning($("btn-meaning").getAttribute("aria-pressed") !== "true");
+    $("btn-hint").onclick = () => setHint($("btn-hint").getAttribute("aria-pressed") !== "true");
     $("btn-retry").onclick = () => {
+      $("btn-hint").hidden = false;
+      setHint(false);
       $("result").hidden = true;
       $("listen-area").hidden = false;
       $("interim").textContent = "";

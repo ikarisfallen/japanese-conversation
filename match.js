@@ -153,9 +153,22 @@
     return ops;
   }
 
+  // Words with character offsets and hiragana readings, or null before the dictionary loads.
+  function words(text) {
+    if (!tokenizer) return null;
+    let pos = 0;
+    return tokenizer.tokenize(text).map((t) => {
+      const start = pos;
+      pos += [...t.surface_form].length;
+      const r = t.reading && t.reading !== "*" ? toHiragana(t.reading) : null;
+      return { start, end: pos, surface: t.surface_form, reading: r };
+    });
+  }
+
   window.Matcher = {
     loadTokenizer,
     isReady: () => !!tokenizer,
+    words,
     expandPattern,
     reading,
     similarity,
