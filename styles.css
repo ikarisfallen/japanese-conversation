@@ -132,13 +132,42 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px s
 .question { display: flex; align-items: center; gap: 8px; min-height: 56px; }
 .speak { background: var(--bg); border-radius: 50%; }
 .q { font-size: 1.6rem; font-weight: 600; margin: 0; line-height: 1.35; }
-.q.with-ruby { line-height: 1.9; }
 .reveal { border: 1px dashed var(--line); padding: 10px 14px; color: var(--muted); }
 .cue { margin: 14px 0 0; font-size: 1.05rem; }
 .q ruby, .model-text ruby, .hint-text ruby { ruby-position: over; }
 rt { font-size: 0.5em; font-weight: 500; color: var(--muted); }
 .reveal-box { margin: 10px 0 0; padding: 8px 12px; border-radius: 10px; background: var(--bg); }
 .hint-text { font-size: 1.3rem; font-weight: 600; line-height: 2; padding-top: 4px; }
+/* Word-by-word gloss (same layout as jp-subtitles): furigana / Japanese / English
+   stacked per word, each word in its own color. */
+:root {
+  --wc0: #c62828; --wc1: #1565c0; --wc2: #a15c00; --wc3: #2e7d32;
+  --wc4: #ad1457; --wc5: #6a1b9a; --wc6: #00796b; --wc7: #5d4037;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --wc0: #ff6666; --wc1: #66ccff; --wc2: #ffcc44; --wc3: #66ff99;
+    --wc4: #ff99dd; --wc5: #cc88ff; --wc6: #44dddd; --wc7: #ddbb77;
+  }
+}
+:root[data-theme="dark"] {
+  --wc0: #ff6666; --wc1: #66ccff; --wc2: #ffcc44; --wc3: #66ff99;
+  --wc4: #ff99dd; --wc5: #cc88ff; --wc6: #44dddd; --wc7: #ddbb77;
+}
+.gloss-line { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 2px 6px; }
+.gw { display: inline-flex; flex-direction: column; align-items: center; line-height: 1.25; }
+.gw-jp ruby { ruby-position: over; }
+.gw rt { color: inherit; opacity: 0.85; }
+.gw-en {
+  font-size: 0.75rem; font-weight: 500; line-height: 1.2; min-height: 1.2em;
+  max-width: 7.5em; text-align: center; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+.gw-punct { color: var(--muted); margin: 0 -3px; }
+.wc0 { color: var(--wc0); } .wc1 { color: var(--wc1); } .wc2 { color: var(--wc2); } .wc3 { color: var(--wc3); }
+.wc4 { color: var(--wc4); } .wc5 { color: var(--wc5); } .wc6 { color: var(--wc6); } .wc7 { color: var(--wc7); }
+.q .gw-en { font-size: 0.55em; }
+.hint-text .gw-en { font-size: 0.6em; }
+
 .toggles { display: flex; gap: 8px; margin-top: 14px; }
 .toggle {
   flex: 1; border: 1px solid var(--line); padding: 8px 12px; font-size: 0.95rem; color: var(--muted);

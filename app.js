@@ -145,29 +145,36 @@
     return ok;
   }
 
-  // "Meaning" toggle: English translation of the question + furigana on it.
+  // Color-coded word-by-word gloss (furigana / Japanese / English per word);
+  // falls back to plain furigana if the drill has no gloss.
+  function setGloss(el, text, kana, gloss) {
+    const line = gloss && window.Furigana.renderGloss(text, kana, gloss);
+    if (line) el.replaceChildren(line);
+    else setRuby(el, text, kana);
+  }
+
+  // "Meaning" toggle: English translation of the question + the glossed question.
   function setMeaning(on) {
     const d = current();
     $("btn-meaning").setAttribute("aria-pressed", on);
     $("q-meaning").hidden = !on;
     $("q-meaning").textContent = d.qEn || "";
     if (on) {
-      setRuby($("card-q"), d.q, d.qKana);
+      setGloss($("card-q"), d.q, d.qKana, d.qGloss);
       $("card-q").hidden = false;
       $("card-q-hidden").hidden = true;
     } else {
       $("card-q").textContent = d.q;
     }
-    $("card-q").classList.toggle("with-ruby", on);
   }
 
-  // "Answer" toggle: the model answer with furigana. Peeking stops the card from moving up a box.
+  // "Answer" toggle: the glossed model answer. Peeking stops the card from moving up a box.
   function setHint(on) {
     const d = current();
     $("btn-hint").setAttribute("aria-pressed", on);
     $("a-hint").hidden = !on;
     if (on) {
-      setRuby($("a-hint"), d.model, d.kana);
+      setGloss($("a-hint"), d.model, d.kana, d.gloss);
       session.peeked = true;
     }
   }

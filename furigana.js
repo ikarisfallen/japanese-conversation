@@ -106,5 +106,52 @@
     return { node: frag, ok: true };
   }
 
-  window.Furigana = { align, render };
+  // Interlinear gloss, styled after jp-subtitles: each word is a stack of
+  // furigana / Japanese / English, and each word gets its own color (wc0–wc7).
+  // gloss: "最近=lately|どう=how|？" — a piece without "=" is punctuation.
+  const WORD_COLORS = 8;
+  function renderGloss(text, kana, gloss) {
+    const words = gloss.split("|").map((p) => {
+      const i = p.indexOf("=");
+      return i < 0 ? { jp: p, en: null } : { jp: p.slice(0, i), en: p.slice(i + 1) };
+    });
+    if (words.map((w) => w.jp).join("") !== text) return null;
+
+    // Break the sentence into units: a kanji run with its reading, or a single other character.
+    const units = [];
+    for (const s of align(text, kana) || segment(text)) {
+      if (s.type === "kanji" && s.reading) units.push({ start: s.start, text: s.text, reading: s.reading });
+      else [...s.text].forEach((ch, i) => units.push({ start: s.start + i, text: ch }));
+    }
+
+    const line = document.createElement("span");
+    line.className = "gloss-line";
+    let pos = 0;
+    let color = 0;
+    for (const w of words) {
+      const end = pos + [...w.jp].length;
+      const punct = w.en === null && !KANJI.test(w.jp) && !KANA.test(w.jp);
+      const word = document.createElement("span");
+      word.className = punct ? "gw gw-punct" : `gw wc${color++ % WORD_COLORS}`;
+      const jp = document.createElement("span");
+      jp.className = "gw-jp";
+      for (const u of units.filter((u) => u.start >= pos && u.start < end)) {
+        if (!u.reading) { jp.append(u.text); continue; }
+        const ruby = document.createElement("ruby");
+        const rt = document.createElement("rt");
+        rt.textContent = u.reading;
+        ruby.append(u.text, rt);
+        jp.append(ruby);
+      }
+      const en = document.createElement("span");
+      en.className = "gw-en";
+      en.textContent = w.en || "";
+      word.append(jp, en);
+      line.append(word);
+      pos = end;
+    }
+    return line;
+  }
+
+  window.Furigana = { align, render, renderGloss };
 })();
