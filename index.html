@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>話そう Speaking Drills</title>
+  <meta name="description" content="Casual Tokyo Japanese speaking drills: hear a question, answer out loud, get checked.">
+  <meta name="theme-color" content="#f6f1e9" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1b1917" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="styles.css">
+  <script src="vendor/kuromoji/kuromoji.js" defer></script>
+  <script src="drills.js" defer></script>
+  <script src="match.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <main id="app">
+
+    <!-- Home -->
+    <section id="view-home" class="view">
+      <header class="brand">
+        <h1><span class="jp">話そう</span> <span class="sub">Speaking Drills</span></h1>
+        <p class="tag">Casual Tokyo Japanese · タメ口</p>
+      </header>
+
+      <div class="stats">
+        <div class="stat"><b id="stat-due">0</b><span>due</span></div>
+        <div class="stat"><b id="stat-new">0</b><span>new</span></div>
+        <div class="stat"><b id="stat-learned">0</b><span>learned</span></div>
+      </div>
+
+      <h2 class="label">Topics</h2>
+      <div id="cats" class="chips"></div>
+
+      <button id="btn-start" class="primary big">Start drill</button>
+      <button id="btn-practice" class="ghost">Practice random cards</button>
+
+      <p id="env-warning" class="warning" hidden></p>
+      <p id="dict-status" class="muted small"></p>
+
+      <details class="settings">
+        <summary>Settings</summary>
+        <label class="row">
+          <span>Show the Japanese question</span>
+          <select id="set-showq">
+            <option value="always">Always</option>
+            <option value="after">After I answer (listening mode)</option>
+          </select>
+        </label>
+        <label class="row">
+          <span>Start listening after the question</span>
+          <input type="checkbox" id="set-autolisten">
+        </label>
+        <label class="row">
+          <span>Speech speed <output id="rate-out"></output></span>
+          <input type="range" id="set-rate" min="0.6" max="1.2" step="0.05">
+        </label>
+        <label class="row">
+          <span>New cards per session</span>
+          <input type="number" id="set-new" min="1" max="40">
+        </label>
+        <label class="row">
+          <span>Voice</span>
+          <select id="set-voice"></select>
+        </label>
+        <button id="btn-reset" class="danger small-btn">Reset progress</button>
+      </details>
+    </section>
+
+    <!-- Drill -->
+    <section id="view-drill" class="view" hidden>
+      <div class="topbar">
+        <button id="btn-quit" class="icon-btn" aria-label="End session">✕</button>
+        <div class="progress"><div id="progress-bar"></div></div>
+        <span id="progress-text" class="muted small"></span>
+      </div>
+
+      <article class="card">
+        <p id="card-cat" class="cat"></p>
+        <div class="question">
+          <button id="btn-say-q" class="icon-btn speak" aria-label="Play question">🔊</button>
+          <p id="card-q" class="jp q"></p>
+          <button id="card-q-hidden" class="reveal" hidden>Tap to show the question</button>
+        </div>
+        <p class="cue"><span class="muted">Answer:</span> <span id="card-cue"></span></p>
+      </article>
+
+      <div id="listen-area" class="listen">
+        <button id="btn-mic" class="mic" aria-label="Start speaking">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-2.08A7 7 0 0 0 19 12h-2Z"/></svg>
+        </button>
+        <p id="mic-hint" class="muted small">Tap and answer out loud</p>
+        <p id="interim" class="jp interim"></p>
+        <button id="btn-type" class="link small">Can't talk right now? Type it</button>
+        <form id="type-form" hidden>
+          <input id="type-input" lang="ja" autocomplete="off" placeholder="日本語で入力">
+          <button class="primary">Check</button>
+        </form>
+      </div>
+
+      <div id="result" class="result" hidden>
+        <p id="verdict" class="verdict"></p>
+        <div class="heard">
+          <p class="label">You said</p>
+          <p id="heard-text" class="jp"></p>
+          <p id="heard-diff" class="jp diff"></p>
+        </div>
+        <div class="model">
+          <p class="label">Model answer
+            <button id="btn-say-a" class="icon-btn speak small-icon" aria-label="Play model answer">🔊</button>
+          </p>
+          <p id="model-text" class="jp model-text"></p>
+          <p id="model-kana" class="jp muted"></p>
+          <p id="model-en" class="muted"></p>
+          <p id="model-note" class="note"></p>
+        </div>
+        <div class="actions">
+          <button id="btn-retry" class="ghost">Try again</button>
+          <button id="btn-override" class="ghost">I said it right</button>
+          <button id="btn-next" class="primary">Next</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Summary -->
+    <section id="view-done" class="view" hidden>
+      <h2 class="jp done-title">お疲れ！</h2>
+      <p id="done-text"></p>
+      <ul id="done-list" class="done-list"></ul>
+      <button id="btn-home" class="primary big">Back to home</button>
+    </section>
+
+  </main>
+</body>
+</html>
