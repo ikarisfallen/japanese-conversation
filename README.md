@@ -1,13 +1,16 @@
-# 話そう Speaking Drills
+# 話そう Sentence Builder
 
-A PWA for practicing casual Tokyo Japanese (タメ口) out loud. The app asks a question, you answer out loud, and it checks your answer against the accepted answers.
+A PWA for listening practice in casual Tokyo Japanese (タメ口). The app says a sentence, and you rebuild it left to right by picking each word (in kana) from 3–4 choices.
 
-## How it works
+Sentences come from patterns with interchangeable slots (this/that, colors, objects, owners, foods, places, times, counts, adjectives…), so each round is a new combination you can't just memorize.
 
-- **Question audio:** the browser's speech synthesis (`ja-JP` voice).
-- **Listening:** the Web Speech API (`ja-JP`). In Chrome on Android, audio goes to Google's speech service, so this part needs a connection.
-- **Matching:** [kuromoji.js](https://github.com/takuyaa/kuromoji.js) converts both what you said and the accepted answers to hiragana, then they're compared by edit distance. 漢字 vs. かな differences don't count against you, and spoken numbers like 7時 match 七時. A score of 90% or more is correct; 70% or more is close.
-- **Review:** missed cards come back at the end of the session, then Leitner-style spaced repetition (1, 3, 7, 14, 30, then 60 days). Progress is stored in `localStorage` on the device.
+## On the card
+
+- 🔊 replays the sentence.
+- **Kana** shows what was said in hiragana and katakana.
+- **Meaning** shows a color-coded word-by-word gloss (the same layout as jp-subtitles: furigana, Japanese and English stacked per word, each word in its own color) plus the full English sentence.
+
+Both start hidden on every sentence. Wrong taps turn red and count against that sentence. Stats (sentences, perfect sentences, first-try accuracy) are stored in `localStorage` on the device.
 
 ## Run locally
 
@@ -17,19 +20,14 @@ python -m http.server 8080
 
 Then open http://localhost:8080 in Chrome.
 
-## Adding drills
+## Adding sentences
 
-Edit `drills.js`. Accepted answers use a small pattern syntax:
+Edit `sentences.js`:
 
-- `[a|b]`: either a or b
-- `[a|b|]`: a, b, or nothing (optional)
+- **Word pools** (`POOLS`): each word is `w(jp, kana, en)`. Wrong choices for a slot come from the rest of its pool.
+- **Patterns** (`PATTERNS`): `parts` lists the slots left to right. A part can be a pool (`{ pool: "color" }`), a fixed word with its own wrong choices (`{ word: w("が", "が", "(subject)"), alts: ["で", "に"] }`), or punctuation (`"、"`). `en(p)` builds the English sentence from the picks.
+- `fits` limits a slot to words that make sense with earlier picks (e.g. no "this park is cheap").
 
-Example: `"[うん|]元気[だよ|]"` accepts 元気, 元気だよ, うん元気 and うん元気だよ.
+## Voice recognition (on hold)
 
-Furigana comes from the `kana` and `qKana` fields, so separate words with spaces there (`きょう さむくない？`). The spaces tell the app where one word's reading ends when kanji from two words sit next to each other.
-
-The Meaning and Answer toggles show a color-coded word-by-word gloss (the same layout as jp-subtitles). It comes from the `qGloss` and `gloss` fields, written as `"最近=lately|どう=how (is it)|？"`: `word=meaning` pieces separated by `|`, where a piece without `=` is punctuation. The words have to spell out the sentence exactly.
-
-Write numbers in kanji (七時, 二年). If a kanji has two readings the tokenizer could pick (空いた = あいた/すいた), also list the kana spelling.
-
-`vendor/kuromoji/kuromoji.js` has one local patch: the dictionary loader skips gunzip if the host already decompressed the file.
+The earlier speak-your-answer version (Web Speech API plus kuromoji kana matching, with 42 hand-written drills) is in git history at commit `28b8e83`.

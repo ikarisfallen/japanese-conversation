@@ -1,5 +1,5 @@
-// Furigana: line up a sentence's kanji with the readings in drill.kana and
-// render them as <ruby>. Each run of consecutive kanji gets one reading.
+// Furigana: line up a word's kanji with its kana reading and render them as
+// <ruby>. Each run of consecutive kanji gets one reading (机の上 → 机(つくえ)の上(うえ)).
 (function () {
   "use strict";
 
@@ -26,46 +26,6 @@
 
   const escape = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-  // A kanji run can span words (今日寒 = きょう さむ). drill.kana marks words with spaces,
-  // so split the run where the dictionary's word boundaries agree with those spaces;
-  // otherwise keep one reading over the whole run.
-  function splitRun(seg, words) {
-    const parts = seg.reading.split(" ");
-    if (parts.length === 1) return [seg];
-    const joined = { ...seg, reading: parts.join("") };
-    if (!words) return [joined];
-    const chars = [...seg.text];
-    const end = seg.start + chars.length;
-    const cuts = words.map((w) => w.end).filter((p) => p > seg.start && p < end);
-    const options = choose(cuts, parts.length - 1).map((picked) => {
-      const bounds = [seg.start, ...picked, end];
-      return parts.map((r, i) => ({
-        type: "kanji",
-        text: chars.slice(bounds[i] - seg.start, bounds[i + 1] - seg.start).join(""),
-        start: bounds[i],
-        end: bounds[i + 1],
-        reading: r,
-      }));
-    });
-    // Prefer a split where each piece's reading fits the dictionary's reading of its words.
-    const fits = (p) => {
-      const ws = words.filter((w) => w.start < p.end && w.end > p.start);
-      return ws.some((w) => !w.reading) || ws.map((w) => w.reading).join("").includes(p.reading);
-    };
-    const good = options.find((pieces) => pieces.every(fits));
-    if (good) return good;
-    // Only one possible split (e.g. 空いてる read あいてる by the dictionary): trust the spaces.
-    return options.length === 1 ? options[0] : [joined];
-  }
-
-  // All ways to pick k items from arr, in order.
-  function choose(arr, k) {
-    if (k === 0) return [[]];
-    const out = [];
-    arr.forEach((x, i) => choose(arr.slice(i + 1), k - 1).forEach((rest) => out.push([x, ...rest])));
-    return out;
-  }
-
   // Returns segments with .reading on kanji runs, or null if text and kana don't line up.
   function align(text, kana) {
     const segs = segment(text);
@@ -83,8 +43,7 @@
 
     let g = 1;
     for (const s of segs) if (s.type === "kanji") s.reading = m[g++].trim();
-    const words = window.Matcher && window.Matcher.words(text);
-    return segs.flatMap((s) => (s.type === "kanji" ? splitRun(s, words) : [s]));
+    return segs;
   }
 
   // Build a DocumentFragment with <ruby> for kanji runs; plain text if alignment fails.
@@ -108,50 +67,33 @@
 
   // Interlinear gloss, styled after jp-subtitles: each word is a stack of
   // furigana / Japanese / English, and each word gets its own color (wc0–wc7).
-  // gloss: "最近=lately|どう=how|？" — a piece without "=" is punctuation.
+  // words: [{jp, kana, en} | {punct}]
   const WORD_COLORS = 8;
-  function renderGloss(text, kana, gloss) {
-    const words = gloss.split("|").map((p) => {
-      const i = p.indexOf("=");
-      return i < 0 ? { jp: p, en: null } : { jp: p.slice(0, i), en: p.slice(i + 1) };
-    });
-    if (words.map((w) => w.jp).join("") !== text) return null;
+  const colorClass = (i) => `wc${i % WORD_COLORS}`;
 
-    // Break the sentence into units: a kanji run with its reading, or a single other character.
-    const units = [];
-    for (const s of align(text, kana) || segment(text)) {
-      if (s.type === "kanji" && s.reading) units.push({ start: s.start, text: s.text, reading: s.reading });
-      else [...s.text].forEach((ch, i) => units.push({ start: s.start + i, text: ch }));
-    }
-
+  function renderWords(words) {
     const line = document.createElement("span");
     line.className = "gloss-line";
-    let pos = 0;
     let color = 0;
     for (const w of words) {
-      const end = pos + [...w.jp].length;
-      const punct = w.en === null && !KANJI.test(w.jp) && !KANA.test(w.jp);
       const word = document.createElement("span");
-      word.className = punct ? "gw gw-punct" : `gw wc${color++ % WORD_COLORS}`;
       const jp = document.createElement("span");
       jp.className = "gw-jp";
-      for (const u of units.filter((u) => u.start >= pos && u.start < end)) {
-        if (!u.reading) { jp.append(u.text); continue; }
-        const ruby = document.createElement("ruby");
-        const rt = document.createElement("rt");
-        rt.textContent = u.reading;
-        ruby.append(u.text, rt);
-        jp.append(ruby);
-      }
       const en = document.createElement("span");
       en.className = "gw-en";
-      en.textContent = w.en || "";
+      if (w.punct) {
+        word.className = "gw gw-punct";
+        jp.textContent = w.punct;
+      } else {
+        word.className = `gw ${colorClass(color++)}`;
+        jp.append(render(w.jp, w.kana).node);
+        en.textContent = w.en;
+      }
       word.append(jp, en);
       line.append(word);
-      pos = end;
     }
     return line;
   }
 
-  window.Furigana = { align, render, renderGloss };
+  window.Furigana = { align, render, renderWords, colorClass };
 })();

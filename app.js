@@ -2,9 +2,6 @@
   "use strict";
 
   const $ = (id) => document.getElementById(id);
-  const DAY = 24 * 60 * 60 * 1000;
-  // Leitner boxes: days until the next review after a correct answer.
-  const INTERVALS = [0, 1, 3, 7, 14, 30, 60];
 
   // ── Storage ────────────────────────────────────
   function load(key, fallback) {
@@ -17,15 +14,13 @@
     try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* storage unavailable */ }
   }
 
-  const settings = load("jc-settings", {
-    showQ: "always",
-    autoListen: false,
-    rate: 0.95,
-    newPerSession: 8,
-    voice: "",
-    cats: Object.keys(window.CATEGORIES),
-  });
-  let progress = load("jc-progress", {}); // id → {box, due, reps, lapses}
+  const allCats = Object.keys(window.CATEGORIES);
+  const settings = load("sb-settings", { rate: 0.9, voice: "", count: 10, cats: allCats });
+  settings.cats = settings.cats.filter((c) => allCats.includes(c));
+  if (!settings.cats.length) settings.cats = allCats;
+
+  const EMPTY_STATS = { played: 0, perfect: 0, slots: 0, firstTry: 0 };
+  let stats = load("sb-stats", EMPTY_STATS);
 
   // ── Speech synthesis ────────────────────────────
   let voices = [];
@@ -46,298 +41,205 @@
   }
 
   function speak(text) {
-    return new Promise((resolve) => {
-      if (!("speechSynthesis" in window)) return resolve();
-      speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(text);
-      u.lang = "ja-JP";
-      u.rate = settings.rate;
-      const v = voices.find((v) => v.name === settings.voice);
-      if (v) u.voice = v;
-      // Chrome on Android sometimes never fires onend; fall back to a timer.
-      const timer = setTimeout(resolve, 1500 + text.length * 250 / settings.rate);
-      u.onend = u.onerror = () => { clearTimeout(timer); resolve(); };
-      speechSynthesis.speak(u);
-    });
-  }
-
-  // ── Speech recognition ──────────────────────────
-  const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  let recognizer = null;
-
-  function listen(onInterim) {
-    return new Promise((resolve, reject) => {
-      const rec = new Recognition();
-      recognizer = rec;
-      rec.lang = "ja-JP";
-      rec.interimResults = true;
-      rec.maxAlternatives = 5;
-      rec.continuous = false;
-      let finals = [];
-      let lastInterim = "";
-      rec.onresult = (e) => {
-        let interim = "";
-        for (let i = e.resultIndex; i < e.results.length; i++) {
-          const r = e.results[i];
-          if (r.isFinal) finals = Array.from(r, (alt) => alt.transcript);
-          else interim += r[0].transcript;
-        }
-        lastInterim = interim || lastInterim;
-        onInterim(finals[0] || interim);
-      };
-      rec.onerror = (e) => {
-        recognizer = null;
-        if (e.error === "no-speech" || e.error === "aborted") resolve([]);
-        else reject(e.error);
-      };
-      rec.onend = () => {
-        recognizer = null;
-        resolve(finals.length ? finals : lastInterim ? [lastInterim] : []);
-      };
-      rec.start();
-    });
-  }
-
-  // ── Scheduling ──────────────────────────────────
-  function inSelectedCats(d) { return settings.cats.includes(d.cat); }
-  function dueCards() {
-    const now = Date.now();
-    return window.DRILLS.filter((d) => inSelectedCats(d) && progress[d.id] && progress[d.id].due <= now);
-  }
-  function newCards() { return window.DRILLS.filter((d) => inSelectedCats(d) && !progress[d.id]); }
-  function shuffle(arr) {
-    const a = arr.slice();
-    for (let i = a.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [a[i], a[j]] = [a[j], a[i]];
-    }
-    return a;
-  }
-
-  function schedule(id, result) {
-    const p = progress[id] || { box: 0, due: 0, reps: 0, lapses: 0 };
-    p.reps++;
-    if (result === "correct") p.box = Math.min(p.box + 1, INTERVALS.length - 1);
-    else if (result === "wrong") { p.box = 0; p.lapses++; }
-    // "close" keeps the same box
-    p.due = Date.now() + INTERVALS[p.box] * DAY;
-    progress[id] = p;
-    save("jc-progress", progress);
-  }
-
-  // ── Session state ───────────────────────────────
-  let session = null;
-  // {queue: [drill], index, results: Map(id → verdict), requeued: Set, attempt: {verdict, overridden}}
-
-  function startSession(cards) {
-    if (!cards.length) return;
-    session = { queue: cards, index: 0, results: new Map(), requeued: new Set(), attempt: null };
-    show("drill");
-    showCard();
-  }
-
-  function current() { return session.queue[session.index]; }
-
-  // Replace an element's content with furigana-annotated text. Returns false if it fell back to plain text.
-  function setRuby(el, text, kana) {
-    const { node, ok } = window.Furigana.render(text, kana);
-    el.replaceChildren(node);
-    return ok;
-  }
-
-  // Color-coded word-by-word gloss (furigana / Japanese / English per word);
-  // falls back to plain furigana if the drill has no gloss.
-  function setGloss(el, text, kana, gloss) {
-    const line = gloss && window.Furigana.renderGloss(text, kana, gloss);
-    if (line) el.replaceChildren(line);
-    else setRuby(el, text, kana);
-  }
-
-  // "Meaning" toggle: English translation of the question + the glossed question.
-  function setMeaning(on) {
-    const d = current();
-    $("btn-meaning").setAttribute("aria-pressed", on);
-    $("q-meaning").hidden = !on;
-    $("q-meaning").textContent = d.qEn || "";
-    if (on) {
-      setGloss($("card-q"), d.q, d.qKana, d.qGloss);
-      $("card-q").hidden = false;
-      $("card-q-hidden").hidden = true;
-    } else {
-      $("card-q").textContent = d.q;
-    }
-  }
-
-  // "Answer" toggle: the glossed model answer. Peeking stops the card from moving up a box.
-  function setHint(on) {
-    const d = current();
-    $("btn-hint").setAttribute("aria-pressed", on);
-    $("a-hint").hidden = !on;
-    if (on) {
-      setGloss($("a-hint"), d.model, d.kana, d.gloss);
-      session.peeked = true;
-    }
-  }
-
-  function showCard() {
-    const d = current();
-    session.attempt = null;
-    session.peeked = false;
-    $("card-cat").textContent = window.CATEGORIES[d.cat];
-    $("card-cue").textContent = d.cue;
-    setMeaning(false);
-    setHint(false);
-    $("btn-hint").hidden = false;
-    const hideQ = settings.showQ === "after";
-    $("card-q").hidden = hideQ;
-    $("card-q-hidden").hidden = !hideQ;
-    $("result").hidden = true;
-    $("listen-area").hidden = false;
-    $("interim").textContent = "";
-    $("type-form").hidden = true;
-    $("type-input").value = "";
-    updateProgress();
-    askQuestion();
-  }
-
-  async function askQuestion() {
-    const d = current();
-    await speak(d.q);
-    if (settings.autoListen && session && current() === d && !$("listen-area").hidden && !recognizer) {
-      startListening();
-    }
-  }
-
-  function updateProgress() {
-    const total = session.queue.length;
-    $("progress-bar").style.width = `${(session.index / total) * 100}%`;
-    $("progress-text").textContent = `${session.index + 1} / ${total}`;
-  }
-
-  async function startListening() {
-    if (!Recognition) return;
-    if (recognizer) { recognizer.stop(); return; }
+    if (!("speechSynthesis" in window)) return;
     speechSynthesis.cancel();
-    const mic = $("btn-mic");
-    mic.classList.add("listening");
-    $("mic-hint").textContent = "Listening… tap to stop";
-    $("interim").textContent = "";
-    try {
-      const heard = await listen((t) => { $("interim").textContent = t; });
-      if (heard.length) grade(heard);
-      else $("mic-hint").textContent = "Didn't catch that — tap and try again";
-    } catch (err) {
-      $("mic-hint").textContent =
-        err === "not-allowed" ? "Microphone blocked — allow it in site settings" :
-        err === "network" ? "Speech recognition needs an internet connection" :
-        `Recognition error: ${err}`;
-    } finally {
-      mic.classList.remove("listening");
-      if ($("mic-hint").textContent.startsWith("Listening")) $("mic-hint").textContent = "Tap and answer out loud";
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "ja-JP";
+    u.rate = settings.rate;
+    const v = voices.find((v) => v.name === settings.voice);
+    if (v) u.voice = v;
+    speechSynthesis.speak(u);
+  }
+
+  // ── Round state ─────────────────────────────────
+  let round = null;
+  // { sentences: [...], index, results: [{sentence, mistakes}], step, mistakes, slotMissed }
+
+  function startRound() {
+    const patterns = window.PATTERNS.filter((p) => settings.cats.includes(p.cat));
+    const sentences = [];
+    let last = null;
+    for (let i = 0; i < settings.count; i++) {
+      // Avoid the same pattern twice in a row when there's a choice.
+      const options = patterns.length > 1 ? patterns.filter((p) => p !== last) : patterns;
+      last = options[Math.floor(Math.random() * options.length)];
+      sentences.push(window.Sentences.generate(last));
+    }
+    round = { sentences, index: 0, results: [] };
+    show("drill");
+    showSentence();
+  }
+
+  const current = () => round.sentences[round.index];
+  // Indexes of the words you pick (everything except punctuation).
+  const slots = (s) => s.words.map((w, i) => (w.punct ? -1 : i)).filter((i) => i >= 0);
+
+  function showSentence() {
+    const s = current();
+    round.step = 0;         // which slot you're on
+    round.mistakes = 0;
+    round.slotMissed = false;
+    $("card-cat").textContent = window.CATEGORIES[s.pattern.cat];
+    setToggle("btn-kana", false);
+    setToggle("btn-meaning", false);
+    $("result").hidden = true;
+    $("choices").hidden = false;
+    $("progress-bar").style.width = `${(round.index / round.sentences.length) * 100}%`;
+    $("progress-text").textContent = `${round.index + 1} / ${round.sentences.length}`;
+    renderBuilt();
+    renderChoices();
+    speak(s.say);
+  }
+
+  // ── Transcript toggles ──────────────────────────
+  // Kana: what was said in hiragana/katakana. Meaning: colored gloss with kanji + English.
+  function setToggle(id, on) {
+    $(id).setAttribute("aria-pressed", on);
+    renderTranscript();
+  }
+  const isOn = (id) => $(id).getAttribute("aria-pressed") === "true";
+
+  function kanaLine(words) {
+    // Space between words, but not around punctuation.
+    let out = "";
+    let prevWord = false;
+    for (const w of words) {
+      out += w.punct || (prevWord ? " " : "") + w.kana;
+      prevWord = !w.punct;
+    }
+    return out;
+  }
+
+  function renderTranscript() {
+    if (!round) return;
+    const s = current();
+    const el = $("transcript");
+    $("meaning-en").hidden = !isOn("btn-meaning");
+    $("meaning-en").textContent = s.en;
+    if (isOn("btn-meaning")) {
+      el.className = "jp transcript";
+      el.replaceChildren(window.Furigana.renderWords(s.words));
+    } else if (isOn("btn-kana")) {
+      el.className = "jp transcript kana-line";
+      el.textContent = kanaLine(s.words);
+    } else {
+      el.className = "transcript placeholder";
+      el.textContent = "Listen, then build the sentence";
     }
   }
 
-  function grade(heardList) {
-    const d = current();
-    const m = window.Matcher.bestMatch(heardList, d.answers);
-    const v = window.Matcher.verdict(m.score);
-    if (!session.attempt) session.attempt = { verdict: v, overridden: false, peeked: session.peeked };
-    renderResult(d, m, v);
-  }
-
-  const VERDICT_TEXT = {
-    correct: "正解！ Nice.",
-    close: "Almost — check the highlighted sounds",
-    wrong: "Not quite — listen and try again",
-  };
-
-  const POLITE = /(です|ます|ました|ません|でした|ましょう)/;
-
-  function renderResult(d, m, v) {
-    $("listen-area").hidden = true;
-    $("result").hidden = false;
-    $("card-q").hidden = false;
-    $("card-q-hidden").hidden = true;
-    // The model answer is shown below, so the Answer toggle isn't needed now.
-    $("btn-hint").hidden = true;
-    $("a-hint").hidden = true;
-
-    const verdictEl = $("verdict");
-    verdictEl.className = `verdict ${v}`;
-    verdictEl.textContent = `${VERDICT_TEXT[v]} (${Math.round(m.score * 100)}%)`;
-    if (POLITE.test(m.heard) && !POLITE.test(d.model)) {
-      verdictEl.textContent += " · That's polite form — use タメ口 (casual) here";
-    }
-    if (session.attempt.peeked && v === "correct") {
-      verdictEl.textContent += " · used the answer, so it'll come back sooner";
-    }
-
-    $("heard-text").textContent = m.heard;
-    const diffEl = $("heard-diff");
-    diffEl.innerHTML = "";
-    if (v !== "correct") {
-      for (const op of window.Matcher.diff(m.expectedReading, m.heardReading)) {
-        const span = document.createElement("span");
-        span.className = op.type;
-        span.textContent = op.text;
-        if (op.type === "missing") span.title = "expected but not heard";
-        if (op.type === "extra") span.title = "heard but not expected";
-        diffEl.appendChild(span);
+  // ── Builder ─────────────────────────────────────
+  function renderBuilt() {
+    const s = current();
+    const el = $("built");
+    el.className = "built jp";
+    el.replaceChildren();
+    const done = slots(s).slice(0, round.step);
+    const nextSlot = slots(s)[round.step] ?? Infinity;
+    let color = 0;
+    s.words.forEach((w, i) => {
+      const span = document.createElement("span");
+      if (w.punct) {
+        // Punctuation appears once you've built everything before it.
+        if (i > nextSlot || done.length === 0) return;
+        span.className = "built-punct";
+        span.textContent = w.punct;
+      } else if (done.includes(i)) {
+        span.className = `chip-word ${window.Furigana.colorClass(color)}`;
+        span.textContent = w.kana;
+      } else {
+        span.className = "blank";
+        span.textContent = "?";
       }
-    }
+      if (!w.punct) color++;
+      el.append(span);
+    });
+  }
 
-    // With furigana on the model answer, the separate kana line is only needed as a fallback.
-    $("model-kana").hidden = setRuby($("model-text"), d.model, d.kana);
-    $("model-kana").textContent = d.kana;
-    $("model-en").textContent = d.en;
-    $("model-note").textContent = d.note || "";
-    $("btn-override").hidden = v === "correct" || session.attempt.overridden;
+  function renderChoices() {
+    const s = current();
+    const el = $("choices");
+    el.replaceChildren();
+    const word = s.words[slots(s)[round.step]];
+    for (const k of word.choices) {
+      const b = document.createElement("button");
+      b.className = "choice";
+      b.textContent = k;
+      b.onclick = () => choose(b, k, word);
+      el.append(b);
+    }
+  }
+
+  function choose(button, kana, word) {
+    if (kana !== word.kana) {
+      round.mistakes++;
+      round.slotMissed = true;
+      button.classList.add("wrong");
+      button.disabled = true;
+      if (navigator.vibrate) navigator.vibrate(60);
+      return;
+    }
+    stats.slots++;
+    if (!round.slotMissed) stats.firstTry++;
+    round.slotMissed = false;
+    round.step++;
+    renderBuilt();
+    if (round.step < slots(current()).length) renderChoices();
+    else finishSentence();
+  }
+
+  function finishSentence() {
+    const s = current();
+    round.results.push({ sentence: s, mistakes: round.mistakes });
+    stats.played++;
+    if (round.mistakes === 0) stats.perfect++;
+    save("sb-stats", stats);
+
+    $("choices").hidden = true;
+    $("built").className = "built jp complete";
+    $("built").replaceChildren(window.Furigana.renderWords(s.words));
+    const v = $("verdict");
+    if (round.mistakes === 0) { v.className = "verdict correct"; v.textContent = "完璧！ Perfect."; }
+    else {
+      v.className = `verdict ${round.mistakes <= 2 ? "close" : "wrong"}`;
+      v.textContent = `Done — ${round.mistakes} wrong tap${round.mistakes > 1 ? "s" : ""}`;
+    }
+    $("result-en").textContent = s.en;
+    $("result").hidden = false;
     $("btn-next").focus();
-    speak(d.model);
+    speak(s.say);
   }
 
   function next() {
-    const d = current();
-    let result = session.attempt ? session.attempt.verdict : "wrong";
-    if (result === "correct" && session.attempt.peeked) result = "close";
-    if (!session.results.has(d.id)) {
-      session.results.set(d.id, result);
-      schedule(d.id, result);
-    }
-    // See missed cards once more at the end of the session.
-    if (result === "wrong" && !session.requeued.has(d.id)) {
-      session.requeued.add(d.id);
-      session.queue.push(d);
-    }
-    session.index++;
-    if (session.index >= session.queue.length) finish();
-    else showCard();
+    round.index++;
+    if (round.index >= round.sentences.length) finish();
+    else showSentence();
   }
 
   function finish() {
-    if (recognizer) recognizer.abort();
     speechSynthesis.cancel();
-    const results = session.results;
-    const counts = { correct: 0, close: 0, wrong: 0 };
-    results.forEach((v) => counts[v]++);
-    $("done-text").textContent =
-      `${results.size} cards · ${counts.correct} correct · ${counts.close} close · ${counts.wrong} missed`;
+    const results = round.results;
+    const perfect = results.filter((r) => r.mistakes === 0).length;
+    $("done-text").textContent = `${results.length} sentences · ${perfect} perfect`;
     const list = $("done-list");
-    list.innerHTML = "";
-    const labels = { correct: "正解", close: "惜しい", wrong: "もう一回" };
-    results.forEach((v, id) => {
-      const d = window.DRILLS.find((x) => x.id === id);
+    list.replaceChildren();
+    for (const r of results) {
       const li = document.createElement("li");
-      const q = document.createElement("span");
-      q.className = "jp";
-      q.textContent = d.model;
+      const text = document.createElement("span");
+      const jp = document.createElement("span");
+      jp.className = "jp";
+      jp.textContent = r.sentence.jp;
+      const en = document.createElement("small");
+      en.className = "muted";
+      en.textContent = r.sentence.en;
+      text.append(jp, document.createElement("br"), en);
       const tag = document.createElement("span");
-      tag.className = `tag-${v} jp`;
-      tag.textContent = labels[v];
-      li.append(q, tag);
-      list.appendChild(li);
-    });
-    session = null;
+      tag.className = r.mistakes === 0 ? "tag-correct" : r.mistakes <= 2 ? "tag-close" : "tag-wrong";
+      tag.textContent = r.mistakes === 0 ? "✓" : `✗${r.mistakes}`;
+      li.append(text, tag);
+      list.append(li);
+    }
+    round = null;
     show("done");
   }
 
@@ -349,17 +251,14 @@
   }
 
   function renderHome() {
-    const due = dueCards().length;
-    const fresh = newCards().length;
-    $("stat-due").textContent = due;
-    $("stat-new").textContent = fresh;
-    $("stat-learned").textContent = Object.values(progress).filter((p) => p.box >= 2).length;
-    const toDo = due + Math.min(fresh, settings.newPerSession);
-    $("btn-start").disabled = toDo === 0;
-    $("btn-start").textContent = toDo ? `Start drill · ${toDo} cards` : "All caught up 🎉";
+    $("stat-played").textContent = stats.played;
+    $("stat-perfect").textContent = stats.perfect;
+    $("stat-accuracy").textContent = stats.slots ? `${Math.round((stats.firstTry / stats.slots) * 100)}%` : "–";
+    $("btn-start").textContent = `Start · ${settings.count} sentences`;
+    $("btn-start").disabled = settings.cats.length === 0;
 
     const cats = $("cats");
-    cats.innerHTML = "";
+    cats.replaceChildren();
     for (const [key, label] of Object.entries(window.CATEGORIES)) {
       const b = document.createElement("button");
       b.className = "chip jp";
@@ -369,108 +268,58 @@
         settings.cats = settings.cats.includes(key)
           ? settings.cats.filter((c) => c !== key)
           : [...settings.cats, key];
-        save("jc-settings", settings);
+        save("sb-settings", settings);
         renderHome();
       };
-      cats.appendChild(b);
+      cats.append(b);
     }
   }
 
   // ── Wiring ─────────────────────────────────────
   function init() {
-    if (!Recognition) {
+    if (!("speechSynthesis" in window)) {
       $("env-warning").hidden = false;
-      $("env-warning").textContent =
-        "This browser doesn't support speech recognition. Use Chrome on Android (or desktop Chrome/Edge). You can still type answers.";
-      $("btn-mic").disabled = true;
-    }
-
-    $("dict-status").textContent = "Loading Japanese dictionary…";
-    window.Matcher.loadTokenizer()
-      .then(() => { $("dict-status").textContent = ""; })
-      .catch(() => { $("dict-status").textContent = "Dictionary failed to load — matching will be less forgiving about kanji vs. kana."; });
-
-    if ("speechSynthesis" in window) {
+      $("env-warning").textContent = "This browser can't speak Japanese aloud. Use Chrome on Android or desktop.";
+    } else {
       refreshVoices();
       speechSynthesis.onvoiceschanged = refreshVoices;
     }
 
-    // Settings
-    $("set-showq").value = settings.showQ;
-    $("set-autolisten").checked = settings.autoListen;
+    $("set-count").value = settings.count;
     $("set-rate").value = settings.rate;
     $("rate-out").textContent = `${settings.rate}×`;
-    $("set-new").value = settings.newPerSession;
-    $("set-showq").onchange = (e) => { settings.showQ = e.target.value; save("jc-settings", settings); };
-    $("set-autolisten").onchange = (e) => { settings.autoListen = e.target.checked; save("jc-settings", settings); };
+    $("set-count").onchange = (e) => {
+      settings.count = Math.max(1, Math.min(50, parseInt(e.target.value, 10) || 10));
+      e.target.value = settings.count;
+      save("sb-settings", settings);
+      renderHome();
+    };
     $("set-rate").oninput = (e) => {
       settings.rate = parseFloat(e.target.value);
       $("rate-out").textContent = `${settings.rate}×`;
-      save("jc-settings", settings);
-    };
-    $("set-new").onchange = (e) => {
-      settings.newPerSession = Math.max(1, Math.min(40, parseInt(e.target.value, 10) || 8));
-      save("jc-settings", settings);
-      renderHome();
+      save("sb-settings", settings);
     };
     $("set-voice").onchange = (e) => {
       settings.voice = e.target.value;
-      save("jc-settings", settings);
-      speak("こんにちは、よろしくね");
+      save("sb-settings", settings);
+      speak("これ、赤いボールだよ");
     };
     $("btn-reset").onclick = () => {
-      if (!confirm("Reset all your progress?")) return;
-      progress = {};
-      save("jc-progress", progress);
+      if (!confirm("Reset your stats?")) return;
+      stats = { ...EMPTY_STATS };
+      save("sb-stats", stats);
       renderHome();
     };
 
-    // Home
-    $("btn-start").onclick = () => {
-      startSession([...shuffle(dueCards()), ...shuffle(newCards()).slice(0, settings.newPerSession)]);
-    };
-    $("btn-practice").onclick = () => {
-      startSession(shuffle(window.DRILLS.filter(inSelectedCats)).slice(0, 10));
-    };
-
-    // Drill
+    $("btn-start").onclick = startRound;
     $("btn-quit").onclick = () => {
-      if (recognizer) recognizer.abort();
       speechSynthesis.cancel();
-      if (session.results.size) finish();
-      else { session = null; show("home"); }
+      if (round.results.length) finish();
+      else { round = null; show("home"); }
     };
-    $("btn-say-q").onclick = () => speak(current().q);
-    $("card-q-hidden").onclick = () => { $("card-q").hidden = false; $("card-q-hidden").hidden = true; };
-    $("btn-mic").onclick = startListening;
-    $("btn-type").onclick = () => {
-      $("type-form").hidden = false;
-      $("type-input").focus();
-    };
-    $("type-form").onsubmit = (e) => {
-      e.preventDefault();
-      const text = $("type-input").value.trim();
-      if (text) grade([text]);
-    };
-    $("btn-say-a").onclick = () => speak(current().model);
-    $("btn-meaning").onclick = () => setMeaning($("btn-meaning").getAttribute("aria-pressed") !== "true");
-    $("btn-hint").onclick = () => setHint($("btn-hint").getAttribute("aria-pressed") !== "true");
-    $("btn-retry").onclick = () => {
-      $("btn-hint").hidden = false;
-      setHint(false);
-      $("result").hidden = true;
-      $("listen-area").hidden = false;
-      $("interim").textContent = "";
-      $("mic-hint").textContent = "Tap and answer out loud";
-      speechSynthesis.cancel();
-    };
-    $("btn-override").onclick = () => {
-      session.attempt.verdict = "correct";
-      session.attempt.overridden = true;
-      $("btn-override").hidden = true;
-      $("verdict").className = "verdict correct";
-      $("verdict").textContent = "Marked correct";
-    };
+    $("btn-say").onclick = () => speak(current().say);
+    $("btn-kana").onclick = () => setToggle("btn-kana", !isOn("btn-kana"));
+    $("btn-meaning").onclick = () => setToggle("btn-meaning", !isOn("btn-meaning"));
     $("btn-next").onclick = next;
     $("btn-home").onclick = () => show("home");
 
@@ -480,9 +329,6 @@
       navigator.serviceWorker.register("sw.js").catch(() => {});
     }
   }
-
-  // Testing hook: simulate a recognition result for the current card.
-  window.__simulateAnswer = (text) => session && grade(Array.isArray(text) ? text : [text]);
 
   init();
 })();

@@ -1,26 +1,19 @@
-// Service worker so the app (and its 17 MB dictionary) work offline.
-// Bump VERSION if you change the dictionary or the asset list.
-const VERSION = "v3";
+// Service worker so the app works offline.
+// Network first (so updates show up right away), falling back to the cache offline.
+// Bump VERSION if you change the asset list.
+const VERSION = "v4";
 const CACHE = `hanasou-${VERSION}`;
-
-const DICT = [
-  "base", "cc", "check", "tid", "tid_map", "tid_pos",
-  "unk", "unk_char", "unk_compat", "unk_invoke", "unk_map", "unk_pos",
-].map((f) => `vendor/kuromoji/dict/${f}.dat.gz`);
 
 const ASSETS = [
   "./",
   "index.html",
   "styles.css",
   "app.js",
-  "match.js",
+  "sentences.js",
   "furigana.js",
-  "drills.js",
   "manifest.webmanifest",
   "icons/icon-192.png",
   "icons/icon-512.png",
-  "vendor/kuromoji/kuromoji.js",
-  ...DICT,
 ];
 
 self.addEventListener("install", (event) => {
@@ -35,17 +28,9 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-// The dictionary never changes: serve it from the cache.
-// Everything else: try the network first (so edits show up), fall back to the cache offline.
 self.addEventListener("fetch", (event) => {
   const req = event.request;
   if (req.method !== "GET" || new URL(req.url).origin !== self.location.origin) return;
-
-  if (req.url.includes("/vendor/kuromoji/dict/")) {
-    event.respondWith(caches.match(req).then((hit) => hit || fetch(req)));
-    return;
-  }
-
   event.respondWith(
     // no-cache: revalidate with the server so the browser's HTTP cache can't serve stale app files.
     fetch(req, { cache: "no-cache" })
