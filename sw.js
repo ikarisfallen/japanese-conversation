@@ -1,7 +1,7 @@
 // Service worker so the app works offline.
 // Network first (so updates show up right away), falling back to the cache offline.
 // Bump VERSION if you change the asset list.
-const VERSION = "v4";
+const VERSION = "v5";
 const CACHE = `hanasou-${VERSION}`;
 
 const ASSETS = [
@@ -9,6 +9,7 @@ const ASSETS = [
   "index.html",
   "styles.css",
   "app.js",
+  "soundalike.js",
   "sentences.js",
   "furigana.js",
   "manifest.webmanifest",

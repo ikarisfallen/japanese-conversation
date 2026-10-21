@@ -15,7 +15,7 @@
   }
 
   const allCats = Object.keys(window.CATEGORIES);
-  const settings = load("sb-settings", { rate: 0.9, voice: "", count: 10, cats: allCats });
+  const settings = load("sb-settings", { rate: 0.9, voice: "", count: 10, cats: allCats, choices: "similar" });
   settings.cats = settings.cats.filter((c) => allCats.includes(c));
   if (!settings.cats.length) settings.cats = allCats;
 
@@ -63,7 +63,7 @@
       // Avoid the same pattern twice in a row when there's a choice.
       const options = patterns.length > 1 ? patterns.filter((p) => p !== last) : patterns;
       last = options[Math.floor(Math.random() * options.length)];
-      sentences.push(window.Sentences.generate(last));
+      sentences.push(window.Sentences.generate(last, settings.choices));
     }
     round = { sentences, index: 0, results: [] };
     show("drill");
@@ -286,6 +286,8 @@
     }
 
     $("set-count").value = settings.count;
+    $("set-choices").value = settings.choices;
+    $("set-choices").onchange = (e) => { settings.choices = e.target.value; save("sb-settings", settings); };
     $("set-rate").value = settings.rate;
     $("rate-out").textContent = `${settings.rate}×`;
     $("set-count").onchange = (e) => {

@@ -10,7 +10,9 @@ Sentences come from patterns with interchangeable slots (this/that, colors, obje
 - **Kana** shows what was said in hiragana and katakana.
 - **Meaning** shows a color-coded word-by-word gloss (the same layout as jp-subtitles: furigana, Japanese and English stacked per word, each word in its own color) plus the full English sentence.
 
-Both start hidden on every sentence. Wrong taps turn red and count against that sentence. Stats (sentences, perfect sentences, first-try accuracy) are stored in `localStorage` on the device.
+Both start hidden on every sentence.
+
+Wrong choices are sound-alikes by default: near-misses that differ by one sound learners commonly mishear (long vs short vowels like しゅうまつ / しゅまつ, small っ like みっつ / みつ, voicing like かさ / がさ, きょ vs こ, an extra or missing ん, or one vowel off like あかい / あけい). Choices that would sound identical to the answer are filtered out. Settings → Wrong choices switches to "Different words (easy)", which uses other words from the same category. The generator is in `soundalike.js`. Wrong taps turn red and count against that sentence. Stats (sentences, perfect sentences, first-try accuracy) are stored in `localStorage` on the device.
 
 ## Run locally
 

@@ -9,7 +9,8 @@
 //   "、" / "？"                         punctuation (filled in automatically)
 //   { pool: "color" }                   pick from a word pool; wrong choices come from the same pool
 //   { pool: "adj", fits: (p) => [...] } only pick words that make sense with earlier picks
-//   { word: w(...), alts: ["が", …] }   a fixed word with listed wrong choices (in kana)
+//   { word: w(...), alts: ["か", …] }   a fixed word; alts are its wrong choices for one-kana
+//                                       particles (keep them sound-alike) and in "different" mode
 //   { name: "x", … }                    names the pick so `en` can use it (defaults to the pool name)
 // `en(p)` builds the English sentence from the picks. A sentence without final
 // punctuation gets "？" if `endsWithQuestion(p)` says so, otherwise "。".
@@ -224,11 +225,11 @@
       id: "want-food", cat: "wants",
       parts: [
         { pool: "when" },
-        { word: w("は", "は", "(as for)"), alts: ["を", "に"] },
+        { word: w("は", "は", "(as for)"), alts: ["ば", "が", "も"] },
         { pool: "food" },
-        { word: w("が", "が", "(subject)"), alts: ["で", "に"] },
+        { word: w("が", "が", "(subject)"), alts: ["か", "な", "だ"] },
         { word: w("食べたい", "たべたい", "want to eat"), alts: ["のみたい", "みたい"] },
-        { word: w("な", "な", "(I feel like)"), alts: ["よ", "の"] },
+        { word: w("な", "な", "(I feel like)"), alts: ["ね", "の", "なあ"] },
       ],
       en: (p) => `I feel like eating ${p.food.en} ${p.when.en}.`,
     },
@@ -236,11 +237,11 @@
       id: "want-drink", cat: "wants",
       parts: [
         { pool: "when" },
-        { word: w("は", "は", "(as for)"), alts: ["を", "に"] },
+        { word: w("は", "は", "(as for)"), alts: ["ば", "が", "も"] },
         { pool: "drink" },
-        { word: w("が", "が", "(subject)"), alts: ["で", "に"] },
+        { word: w("が", "が", "(subject)"), alts: ["か", "な", "だ"] },
         { word: w("飲みたい", "のみたい", "want to drink"), alts: ["たべたい", "かいたい"] },
-        { word: w("な", "な", "(I feel like)"), alts: ["よ", "の"] },
+        { word: w("な", "な", "(I feel like)"), alts: ["ね", "の", "なあ"] },
       ],
       en: (p) => `I feel like drinking ${p.drink.en} ${p.when.en}.`,
     },
@@ -248,7 +249,7 @@
       id: "where-is-item", cat: "places",
       parts: [
         { pool: "item" }, "、", { pool: "location" },
-        { word: w("に", "に", "(at)"), alts: ["を", "が"] },
+        { word: w("に", "に", "(at)"), alts: ["ね", "み", "り"] },
         { pool: "existEnding" },
       ],
       en: (p) => {
@@ -294,7 +295,7 @@
       parts: [
         { pool: "kono" }, { pool: "spot" }, "、", { pool: "very" },
         { pool: "adj", fits: (p) => POOLS.adj.filter((a) => p.spot.adjs.includes(a.en)) },
-        { word: w("ね", "ね", "(huh)"), alts: ["よ", "か"] },
+        { word: w("ね", "ね", "(huh)"), alts: ["な", "ねえ", "の"] },
       ],
       en: (p) => `${cap(p.kono.en)} ${p.spot.en} is ${p.very.en} ${p.adj.en}, huh.`,
     },
@@ -324,8 +325,21 @@
     return out;
   }
 
+  // Wrong choices for a word. "similar": sound-alikes (しゅうまつ → しゅまつ, しゅうまっつ…),
+  // topped up from the pool if a word is too short to have enough. "different": other
+  // words from the same pool. One-kana particles always use their listed alts.
+  function wrongChoices(word, others, mode) {
+    if (mode === "similar" && [...word.kana].length > 1) {
+      const near = window.SoundAlike.soundAlikes(word.kana, 3, others.filter((k) => k !== word.kana));
+      if (near.length < 3) near.push(...distractors(word, others.filter((k) => !near.includes(k)), 3 - near.length));
+      return near;
+    }
+    return distractors(word, others, 3);
+  }
+
   // Returns { pattern, words: [{jp, kana, en, say?, choices?} | {punct}], jp, kana, say, en }.
-  function generate(pattern) {
+  // mode: "similar" (sound-alike choices, the default) or "different".
+  function generate(pattern, mode = "similar") {
     const p = {};
     const words = [];
     for (const part of pattern.parts) {
@@ -333,11 +347,11 @@
       let word, wrong;
       if (part.word) {
         word = part.word;
-        wrong = distractors(word, part.alts, 3);
+        wrong = wrongChoices(word, part.alts, mode);
       } else {
         const pool = POOLS[part.pool];
         word = pick(part.fits ? part.fits(p) : pool);
-        wrong = distractors(word, pool, 3);
+        wrong = wrongChoices(word, pool.map((x) => x.kana), mode);
       }
       p[part.name || part.pool || word.kana] = word;
       words.push({ ...word, choices: shuffle([word.kana, ...wrong]) });

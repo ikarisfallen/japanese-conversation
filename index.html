@@ -10,6 +10,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon-192.png">
   <link rel="stylesheet" href="styles.css">
+  <script src="soundalike.js" defer></script>
   <script src="sentences.js" defer></script>
   <script src="furigana.js" defer></script>
   <script src="app.js" defer></script>
@@ -42,6 +43,13 @@
         <label class="row">
           <span>Sentences per round</span>
           <input type="number" id="set-count" min="1" max="50">
+        </label>
+        <label class="row">
+          <span>Wrong choices</span>
+          <select id="set-choices">
+            <option value="similar">Sound-alike (hard)</option>
+            <option value="different">Different words (easy)</option>
+          </select>
         </label>
         <label class="row">
           <span>Speech speed <output id="rate-out"></output></span>
